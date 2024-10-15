@@ -41,8 +41,10 @@ def make(path, keep_going):
 
 
 def run(CWE, output_dir, timeout):
-    subprocess.Popen([root_dir + "/" + output_dir + "/juliet-run.sh", str(CWE), timeout]).wait()
-
+    subprocess.Popen([root_dir + "/" + output_dir + "/juliet-run.sh", "CWE"+str(CWE), timeout]).wait()
+    
+def parse(CWE, output_dir):
+    subprocess.Popen(["sh", root_dir + "/juliet-parse.sh", "CWE"+str(CWE), output_dir]).wait()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="build and run Juliet test cases for targeted CWEs")
@@ -51,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("-g", "--generate", action="store_true", help="use CMake to generate Makefiles for the targeted CWEs")
     parser.add_argument("-m", "--make", action="store_true", help="use make to build test cases for the targeted CWES")
     parser.add_argument("-r", "--run", action="store_true", help="run tests for the targeted CWEs")
+    parser.add_argument("-p", "--parse", action="store_true", help="parse test results for the targetd CWEs")
     parser.add_argument("-a", "--all", action="store_true", help="target all CWEs")
     parser.add_argument("-k", "--keep-going", action="store_true", help="keep going in case of build failures")
     parser.add_argument("-o", "--output-dir", action="store", default="bin", help="specify the output directory relative to the directory containing this script (default: bin)")
@@ -89,3 +92,6 @@ if __name__ == "__main__":
                 if args.run:
                     juliet_print("running " + path)
                     run(parsed_CWE, args.output_dir, str(args.run_timeout) + "s")
+                if args.parse:
+                    juliet_print("parsing " + path)
+                    parse(parsed_CWE, args.output_dir)

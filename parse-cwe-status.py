@@ -14,6 +14,12 @@ def get_status_str(status: int) -> str:
         return "SIGABRT"
     if status == 124:
         return "TIMEOUT"
+    if status == 135:
+        return "SIGEMT"
+    if status == 139:
+        return "SIGSEGV"
+    if status == 1:
+        return "ASAN"
     if status == 0:
         return "OK"
     return str(status)
@@ -42,11 +48,11 @@ def do_parsing(filename: str) -> tuple[str, dict[int, list[int]], dict[str, dict
         dataflow_stats: dict[int, list[int]] = {}
         functional_stats: dict[str, dict[int, int]] = {}
 
-        entry_pattern = re.compile('(\S*)__(\S+)_(\d+)-\w* (\d*)\n')
+        entry_pattern = re.compile('(\S*)__(\S+)_(\d+)(-\w*)+ (\d*)\n')
         for e in entries[1:]:
             e_match = entry_pattern.match(e)
             if e_match:
-                status = int(e_match.group(4))
+                status = int(e_match.group(5))
                 dataflow_var = int(e_match.group(3))
                 functional_var = e_match.group(2)
                 update_dataflow_variant(dataflow_stats, status, dataflow_var)

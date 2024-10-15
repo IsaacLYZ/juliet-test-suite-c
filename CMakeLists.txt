@@ -6,6 +6,12 @@ string(REGEX MATCH "^CWE[0-9]+" CWE_NAME "${CWE_FOLDER}")
 
 project("juliet-c-${CWE_NAME}")
 
+# specify custom compliers and standard
+set(CMAKE_CXX_COMPILER "aarch64-linux-gnu-g++") # c++ cross compiler for arm64
+set(CMAKE_C_COMPILER "aarch64-linux-gnu-gcc") # gcc cross compiler for arm64
+set(CMAKE_CXX_STANDARD 11)
+add_compile_options(-march=armv8.5-a+memtag) # set march
+
 # prevent cmake from setting -O2 (for release, relwithdebinf, minsizerel, etc)
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g")
 set(CMAKE_C_FLAGS_RELEASE "-g")
@@ -108,6 +114,22 @@ foreach(SOURCE_FILE ${SOURCE_FILES})
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/good"
         COMPILE_DEFINITIONS OMITBAD
       )
+      # add good executable with asan
+      add_executable("${EXECUTABLE_NAME}-good-asan" ${EXECUTABLE_SOURCES})
+      set_target_properties("${EXECUTABLE_NAME}-good-asan"
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/good_asan"
+        COMPILE_DEFINITIONS OMITBAD
+      )
+	  target_compile_options("${EXECUTABLE_NAME}-good-asan" PRIVATE -fsanitize=address)
+	  target_link_options("${EXECUTABLE_NAME}-good-asan" PRIVATE -fsanitize=address)
+      # add good executable with mte
+    #   add_executable("${EXECUTABLE_NAME}-good-mte" ${EXECUTABLE_SOURCES})
+    #   set_target_properties("${EXECUTABLE_NAME}-good-mte"
+    #     PROPERTIES
+    #     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/good_mte"
+    #     COMPILE_DEFINITIONS OMITBAD
+    #   )
 
       # add bad executable
       add_executable("${EXECUTABLE_NAME}-bad" ${EXECUTABLE_SOURCES})
@@ -116,6 +138,23 @@ foreach(SOURCE_FILE ${SOURCE_FILES})
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bad"
         COMPILE_DEFINITIONS OMITGOOD
       )
+	  # add bad executable with ASAN
+      add_executable("${EXECUTABLE_NAME}-bad-asan" ${EXECUTABLE_SOURCES})
+      set_target_properties("${EXECUTABLE_NAME}-bad-asan"
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bad_asan"
+        COMPILE_DEFINITIONS OMITGOOD
+      )
+	  target_compile_options("${EXECUTABLE_NAME}-bad-asan" PRIVATE -fsanitize=address)
+	  target_link_options("${EXECUTABLE_NAME}-bad-asan" PRIVATE -fsanitize=address)
+
+	  # add bad executable with MTE
+	#   add_executable("${EXECUTABLE_NAME}-bad-mte" ${EXECUTABLE_SOURCES})
+    #   set_target_properties("${EXECUTABLE_NAME}-bad-mte"
+    #     PROPERTIES
+    #     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bad_mte"
+    #     COMPILE_DEFINITIONS OMITGOOD
+    #   )
 
     endif(NOT ${CLASS_TEST} EQUAL "-1")
   endif(NOT TARGET "${EXECUTABLE_NAME}-good")

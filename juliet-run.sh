@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# the first parameter specifies a non-default timeout duration
-# the second parameter specifies the path of a library to LD_CHERI_PRELOAD when running test cases
+# the first parameter specifies a CWE binary entry directory
+# the second parameter specifies a non-default timeout duration
 
 # this script will run all good and bad tests in the bin subdirectory and write
 # the names of the tests and their return codes into the files "good.run" and
@@ -12,22 +12,23 @@ ulimit -c 0
 
 SCRIPT_DIR=$(dirname $(realpath "$0"))
 TIMEOUT="1s"
-PRELOAD_PATH=""
+CWE_DIR=""
 INPUT_FILE="/tmp/in.txt"
+
+cat "abcdefg" > "/tmp/in.txt"
+
+# We have to disable leak sanitizer to conduct the experiment
+# TODO: we could probably fix this
+ASAN_OPTIONS=detect_leaks=0
 
 if [ $# -ge 1 ]
 then
-  TIMEOUT="$1"
+  CWE_DIR="$1"
 fi
 
 if [ $# -ge 2 ]
 then
-  PRELOAD_PATH="$2"
-  if [ ! -f "${PRELOAD_PATH}" ]
-  then
-    echo "preload path ${PRELOAD_PATH} does not exist - not running tests"
-    exit 1
-  fi
+  TIMEOUT="$2"
 fi
 
 # parameter 1: the CWE directory corresponding to the tests
@@ -44,19 +45,14 @@ run_tests()
   echo "========== STARTING TEST ${TYPE_PATH} $(date) ==========" >> "${TYPE_PATH}.run"
   for TESTCASE in $(ls -1 "${TYPE_PATH}"); do
     local TESTCASE_PATH="${TYPE_PATH}/${TESTCASE}"
-
-    if [ ! -z "${PRELOAD_PATH}" ]
-    then
-      timeout "${TIMEOUT}" env LD_CHERI_PRELOAD="${PRELOAD_PATH}" "${TESTCASE_PATH}" < "${INPUT_FILE}"
-    else
-      timeout "${TIMEOUT}" "${TESTCASE_PATH}" < "${INPUT_FILE}"
-    fi
-
+    timeout "${TIMEOUT}" "${TESTCASE_PATH}" < "${INPUT_FILE}"
     echo "${TESTCASE_PATH} $?" >> "${TYPE_PATH}.run"
   done
 
   cd "${PREV_CWD}"
 }
 
-run_tests "${SCRIPT_DIR}/bin" "good"
-run_tests "${SCRIPT_DIR}/bin" "bad"
+run_tests "${SCRIPT_DIR}/${CWE_DIR}" "good"
+#run_tests "${SCRIPT_DIR}/${CWE_DIR}" "good_asan"
+run_tests "${SCRIPT_DIR}/${CWE_DIR}" "bad"
+#run_tests "${SCRIPT_DIR}/${CWE_DIR}" "bad_asan"
